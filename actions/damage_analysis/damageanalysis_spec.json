@@ -1,0 +1,61 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Damage Detection API",
+    "version": "1.0.0",
+    "description": "An API to analyze damages for an uploaded image for a claim"
+  },
+  "paths": {
+    "/detect_damage": {
+      "post": {
+        "summary": "Detect and Analyze Damage for uploaded images",
+        "description": "Analyze the uploaded images for damages.",
+        "operationId": "detectDamage",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "image_path": {
+                    "type": "string",
+                    "description": "Image name for claim",
+                      "minLength": 1
+                  },
+                  "claim_id": {
+                    "type": "string",
+                    "description": "Identifier for the created claim",
+                      "minLength": 1
+                  }
+                },
+                "required": [
+                  "image_path",
+                  "claim_id"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "damage_description": {
+                      "type": "string",
+                      "description": "Summary description of the detected damages."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

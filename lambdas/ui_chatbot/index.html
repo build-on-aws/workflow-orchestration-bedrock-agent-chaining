@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Insure Assist Chatbot</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f9f9f9;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1 {
+      font-size: 28px;
+      text-align: center;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    #chat-container {
+      max-width: 600px;
+      margin: 50px auto;
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+    }
+
+    #chat-messages {
+      height: 300px;
+      overflow-y: auto;
+      border-bottom: 1px solid #ccc;
+      margin-bottom: 10px;
+    }
+
+    .user-message, .bot-message {
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+    }
+
+    .user-message {
+      background-color: #007bff;
+      color: #fff;
+    }
+
+    .bot-message {
+      background-color: #28a745;
+      color: #fff;
+    }
+
+    #user-input {
+      width: calc(100% - 90px);
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    #send-button, #upload-button {
+      width: 80px;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      background-color: #007bff;
+      color: #fff;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    #send-button:hover, #upload-button:hover {
+      background-color: #0056b3;
+    }
+
+    #spinner {
+      display: none;
+      width: 40px;
+      height: 40px;
+      border: 4px solid #007bff;
+      border-top: 4px solid #f3f3f3;
+      border-radius: 50%;
+      position: relative; /* Change position to relative */
+      margin: -95px auto 0; /* Adjust top margin to move the spinner up */
+      z-index: 9999; /* Ensure it's on top of other elements */
+      animation: spin 1s linear infinite; /* Spin animation */
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+</head>
+<body>
+   <h1>Insure Assist Chatbot</h1>
+  <div id="chat-container">
+    <div id="chat-messages"></div>
+    <input type="text" id="user-input" placeholder="Type your message...">
+    <input type="file" id="imageFile" accept="image/*">
+    <button id="upload-button">Upload</button>
+    <button id="send-button">Send</button>
+    <div id="spinner"></div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    $(document).ready(function() {
+      // Initialize a variable to store the sessionId
+      var sessionId;
+      
+      $('#send-button').click(function() {
+        sendMessage();
+      });
+
+      $('#user-input').keypress(function(event) {
+        if (event.which === 13) {
+          sendMessage();
+        }
+      });
+
+      $('#upload-button').click(function() {
+        uploadImage();
+      });
+
+      function sendMessage() {
+        var userInput = $('#user-input').val();
+        if (userInput.trim() === '') return;
+
+        $('#chat-messages').append('<div class="user-message">' + userInput + '</div>');
+        $('#user-input').val('');
+
+        sendRequest(userInput);
+      }
+
+      function sendRequest(userInput) {
+        // Show spinner when sending request
+        $('#spinner').show();
+
+        $.ajax({
+          type: 'POST',
+          url: 'http://insureAssistApi/',
+          data: JSON.stringify({ sessionId: sessionId, inputText: userInput }),
+          contentType: 'application/json',
+          success: function (response) {
+            console.log("This is the response" + response)
+            var botAnswer = response.agentAnswer;
+
+            // Update the sessionId with the one received in the response
+            sessionId = response.sessionId;
+
+            $('#chat-messages').append('<div class="bot-message">' + botAnswer + '</div>');
+
+            // Hide spinner when response is received
+            $('#spinner').hide();
+          },
+          error: function (xhr, status, error) {
+            console.error('Error:', error);
+            // Hide spinner if an error occurs
+            $('#spinner').hide();
+          }
+        });
+      }
+
+      function uploadImage() {
+        var fileInput = document.getElementById('imageFile');
+        var file = fileInput.files[0];
+
+        if (!file) {
+          alert('Please select an image file.');
+          return;
+        }
+
+        var formData = new FormData();
+        formData.append('image', file);
+
+        $.ajax({
+          type: 'POST',
+          url: 'http://uiAlbforinsureassist/upload',
+          data: formData,
+          processData: false,
+          contentType: false,
+          success: function(response) {
+            console.log('Image uploaded successfully:', response);
+            // Handle response if needed
+            $.ajax({
+              type: 'POST',
+              url: 'http://insureAssistApi/',
+              data: JSON.stringify({ sessionId: sessionId, inputText: response.s3_url }),
+              contentType: 'application/json',
+              success: function (response) {
+                console.log("This is the response" + response)
+                var botAnswer = response.agentAnswer;
+
+                // Update the sessionId with the one received in the response
+                sessionId = response.sessionId;
+
+                $('#chat-messages').append('<div class="bot-message">' + botAnswer + '</div>');
+
+                // Hide spinner when response is received
+                $('#spinner').hide();
+              },
+              error: function (xhr, status, error) {
+                console.error('Error:', error);
+                // Hide spinner if an error occurs
+                $('#spinner').hide();
+              }
+            });
+
+          },
+          error: function(xhr, status, error) {
+            console.error('Error uploading image:', error);
+            alert('Error uploading image. Please try again later.');
+            // Hide spinner if an error occurs
+            $('#spinner').hide();
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>

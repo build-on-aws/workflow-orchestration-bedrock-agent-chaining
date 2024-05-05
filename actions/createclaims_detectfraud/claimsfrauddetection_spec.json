@@ -1,0 +1,214 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+      "title": "Claims creating Assistant",
+      "version": "1.0.0",
+      "description": "APIs for managing insurance claims by creating new claims and detecting fraud before creating a claim"
+    },
+    "paths": {
+      "/create_claim": {
+        "post": {
+          "summary": "Create New Claim(s)",
+          "description": "Create new claim(s) by requesting information from the customer like name, street address, city, state, zipcode, claim type and description of the incident for which the claim is being created. This API must be called for each new claim creation request, provided the detectFraud determines that this is not a fraud request",
+          "operationId": "createClaim",
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "customerName": {
+                          "type": "string",
+                          "description": "Customer’s Name for creating the claim(s)",
+                          "minLength": 1
+                        },
+                        "streetAddress": {
+                          "type": "string",
+                          "description": "Customer’s Street address for creating the claim(s)",
+                          "minLength": 1
+                        },
+                        "city": {
+                          "type": "string",
+                          "description": "Customer’s City for creating the claim(s)",
+                          "minLength": 1
+                        },
+                        "state": {
+                          "type": "string",
+                          "description": "Customer’s State for creating the claim(s)",
+                          "minLength": 1
+                        },
+                        "zipCode": {
+                          "type": "string",
+                          "description": "Customer’s Zip code for creating the claim(s)",
+                          "minLength": 1
+                        },
+                        "claimType": {
+                          "type": "string",
+                          "description": "Type of insurance claim(s)",
+                          "minLength": 1
+                        },
+                        "description": {
+                          "type": "string",
+                          "description": "Brief description of the incident describing the claim(s)",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "customerName",
+                        "streetAddress",
+                        "city",
+                        "state",
+                        "zipCode",                
+                        "claimType",
+                        "description"
+                    ]
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Success",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "claimId": {
+                        "type": "string",
+                        "description": "Identifier for the created claim(s)"
+                      },
+                      "status": {
+                        "type": "string",
+                        "description": "Status of the claim(s) creation process"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/detect_fraud": {
+        "post": {
+            "summary": "Detect fraud claim(s)",
+            "description": "Detect if the claim(s) are fraud claim(s). This API should be called for every new claim that is being created. This API should be invoked before the claim is actually created.",
+            "operationId": "detectFraud",
+            "requestBody": {
+                "required": true,
+                "content": {
+                    "application/json": {
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "customerName": {
+                          "type": "string",
+                          "description": "Customer’s Name for creating the claim(s)",
+                          "minLength": 1
+                        },
+                        "streetAddress": {
+                          "type": "string",
+                          "description": "Customer’s Street address for creating the claim(s)",
+                          "minLength": 1
+                        },
+                        "city": {
+                          "type": "string",
+                          "description": "Customer’s City for creating the claim(s)",
+                          "minLength": 1
+                        },
+                        "state": {
+                          "type": "string",
+                          "description": "Customer’s State for creating the claim(s)",
+                          "minLength": 1
+                        },
+                        "zipCode": {
+                          "type": "string",
+                          "description": "Customer’s Zip code for creating the claim(s)",
+                          "minLength": 1
+                        },
+                        "claimType": {
+                          "type": "string",
+                          "description": "Type of insurance claim(s)",
+                          "minLength": 1
+                        },
+                        "description": {
+                          "type": "string",
+                          "description": "Brief description of the incident describing the claim(s)",
+                          "minLength": 1
+                        }
+
+                            },
+                            "required": [
+                              "customerName",
+                              "streetAddress",
+                              "city",
+                              "state",
+                              "zipCode",                
+                              "claimType",
+                              "description"
+                          ]
+                      }
+                    }
+                }
+            },
+            "responses": {
+                "200": {
+                    "description": "Success",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                              "type": "object",
+                              "properties": {
+                                  "isFraud": {
+                                      "type": "boolean",
+                                      "description": "Indicator of whether the claim(s) is flagged as fraudulent"
+                                  },
+                                   "customerName": {
+                          "type": "string",
+                          "description": "Customer’s Name for creating the claim(s)",
+                          "minLength": 1
+                        },
+                        "streetAddress": {
+                          "type": "string",
+                          "description": "Customer’s Street address for creating the claim(s)",
+                          "minLength": 1
+                        },
+                        "city": {
+                          "type": "string",
+                          "description": "Customer’s City for creating the claim(s)",
+                          "minLength": 1
+                        },
+                        "state": {
+                          "type": "string",
+                          "description": "Customer’s State for creating the claim(s)",
+                          "minLength": 1
+                        },
+                        "zipCode": {
+                          "type": "string",
+                          "description": "Customer’s Zip code for creating the claim(s)",
+                          "minLength": 1
+                        },
+                        "claimType": {
+                          "type": "string",
+                          "description": "Type of insurance claim(s)",
+                          "minLength": 1
+                        },
+                          "description": {
+                            "type": "string",
+                            "description": "Brief description of the incident describing the claim(s)",
+                            "minLength": 1
+                          }
+
+                              }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+  }
+}
+  

@@ -1,0 +1,61 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Invoke Damage Analysis Agent API",
+    "version": "1.0.0",
+    "description": "An API to delegate to  the Damage Detection Bedrock Agent to analyze damages for an uploaded image"
+  },
+  "paths": {
+    "/invokeDamageAnalysisAgent": {
+      "post": {
+        "summary": "Detect Damage",
+        "description": "Detect the Damage as part of Evidence Collection if new claim is created",
+        "operationId": "invokeDamageAnalysisAgent",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "image_path": {
+                    "type": "string",
+                    "description": "Image name for claim",
+                      "minLength": 1
+                  },
+                  "claim_id": {
+                    "type": "string",
+                    "description": "Identifier for the created claim",
+                      "minLength": 1
+                  }
+                },
+                "required": [
+                  "image_path",
+                  "claim_id"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "description": "Status of the response."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

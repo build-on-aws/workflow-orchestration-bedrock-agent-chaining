@@ -1,0 +1,62 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+      "title": "Send Notifications Assistant",
+      "version": "1.0.0",
+      "description": "API for sending notification to claims adjuster after a damage analysis of the images has been completed."
+    },
+    "paths": {
+      "/send_notification": {
+        "post": {
+          "summary": "Send notification of summarized damage analysis to Claims Adjusters",
+          "description": "Send a notification of the analysis of the images to the claims adjusters. This API must be called only after analysis of the images for damages is completed.",
+          "operationId": "sendNotification",
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                         "claim_id": {
+                          "type": "string",
+                          "description": "Identifier for the created claim.",
+                          "minLength": 1
+                          },
+                        "damage_description": {
+                          "type": "string",
+                          "description": "Summary description of the detected damages.",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "claim_id",
+                        "damage_description"
+                    ]
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Success",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "status": {
+                        "type": "string",
+                        "description": "Status of the notification sent to Claims Adjuster"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+  }
+}
+  

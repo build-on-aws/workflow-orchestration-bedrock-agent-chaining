@@ -1,0 +1,70 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+      "title": "Insurance Policy Information API",
+      "version": "1.0.0",
+      "description": "Answers questions related to insurance policies issues based on the policy type and policy number"
+    },
+    "paths": {
+      "/retrievePolicyDetails": {
+        "post": {
+          "summary": "Answers questions related to insurance policies issues based on the policy type and policy number",
+          "description": "Answers questions related to insurance policies issues based on the policy type and policy number",
+          "operationId": "retrievePolicyDetails",
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+ 		                "question": 
+		                {
+                      "type": "string",
+                      "description": "Question that needs answers",
+                      "minLength": 1
+                    },
+                    "policytype":
+                    {
+                      "type": "string",
+                      "description": "Policy Type  of the Insurance Policy. Only Valid Values are Life and Auto.",
+                      "minLength": 1
+                    },
+                    "policynumber": {
+                      "type": "string",
+                      "description": "Policy Number of the Insurance Policy." ,
+                      "minLength": 1
+                    }
+                   },
+                  "required": [
+                    "question",
+                    "policytype",
+                    "policynumber"
+                  ]
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Successful response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "results": {
+                        "type": "string",
+                        "description": "Response to the question asked."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  
