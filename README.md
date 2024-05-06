@@ -1,6 +1,6 @@
 ## Streamlining Workflow Orchestration with Amazon Bedrock Agent Chaining: A Digital Insurance Agent Example
 
-This github repo goes with this [article](https://community.aws/editor/posts/preview/content/2aVhjeNXvQKS1RBv8sskcmYbz7r?v=2aVhjft1haCpASEuc55LG1FTG85) :
+This github repo goes with this [article](https://community.aws/content/2aVhjeNXvQKS1RBv8sskcmYbz7r) :
 
 ### Deploy the solution
 This project is built using the [AWS Cloud Development Kit (CDK)](https://aws.amazon.com/cdk/) on AWS Cloud9 IDE. See [CDK setup on Cloud9](https://docs.aws.amazon.com/cloud9/latest/user-guide/sample-cdk.html#sample-cdk-install-nodejs) for additional details and prerequisites.
