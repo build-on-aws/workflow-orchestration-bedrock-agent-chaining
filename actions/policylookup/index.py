@@ -24,7 +24,7 @@ config = botocore.config.Config(
 bedrock_agent_runtime_client = boto3.client('bedrock-agent-runtime',config=config)
 
 model_id = "anthropic.claude-v2:1" 
-region_id = "us-east-1" # replace it with the region you're running sagemaker notebook
+region = os.environ['REGION'] 
 kb_id = os.environ['KB_ID'] # replace it with the Knowledge base id.
 
 def retrieveAndGenerate(question, policytype, policynumber, kbId, modelId, regionId, sessionId = None):

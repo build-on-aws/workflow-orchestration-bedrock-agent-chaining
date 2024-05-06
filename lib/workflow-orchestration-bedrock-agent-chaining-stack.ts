@@ -182,6 +182,7 @@ Step 2: Send a notification of the analysis of these damages to the claims adjus
       role: policylambdaFunctionRole,
       environment: {
           'KB_ID': kb.knowledgeBaseId, 
+          'REGION': this.region
       }
     }); 
     
