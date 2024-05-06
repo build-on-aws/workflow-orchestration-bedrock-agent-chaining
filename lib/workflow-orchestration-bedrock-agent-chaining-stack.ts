@@ -67,6 +67,11 @@ Step 2: Send a notification of the analysis of these damages to the claims adjus
         }
     }); 
     
+    // Output the Lambda function name
+    new cdk.CfnOutput(this, 'DamageAnalysisLambdaFunction', {
+        value: damageAnalysisActionGroupExecutor.functionName,
+    });
+    
 
     //Queue for sending the Damage Analysis Notifications out to the Claims Adjusters
     const queue = new sqs.Queue(this, 'ClaimsAdjustersQueue', {
@@ -90,6 +95,10 @@ Step 2: Send a notification of the analysis of these damages to the claims adjus
       environment: {
         'NOTIFICATION_QUEUE_URL': queue.queueUrl // Pass the SQS queue URL as an environment variable
       }
+    });
+    
+    new cdk.CfnOutput(this, 'DamageNotificationLambdaFunction', {
+        value: damageNotificationActionGroupExecutor.functionName,
     });
     
     // Grant permission to the Lambda function to receive messages from the SQS queue
@@ -187,7 +196,7 @@ Step 2: Send a notification of the analysis of these damages to the claims adjus
     }); 
     
     // Output the Lambda function name
-    new cdk.CfnOutput(this, 'PolicyRetrievalFunctionName', {
+    new cdk.CfnOutput(this, 'PolicyRetrievalFromKBLambdaFunction', {
         value: policyRetrieveActionGroupExecutor.functionName,
     });
     
@@ -261,6 +270,10 @@ Step 2: Send a notification of the analysis of these damages to the claims adjus
       environment: {
         'Policy_Agent_ID': PolicyAgent.agentId // Pass the SQS queue URL as an environment variable
       }
+    });
+    
+    new cdk.CfnOutput(this, 'InvokePolicyAgentLambdafunction', {
+      value: invokePolicyAgentActionGroupExecutor.functionName,
     });
     
     //Create "Create Claims and Draud Detection APIs" Lambda function role 
