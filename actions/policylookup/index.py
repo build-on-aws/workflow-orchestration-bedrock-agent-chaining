@@ -51,7 +51,7 @@ def retrieveAndGenerate(question, policytype, policynumber, kbId, modelId, regio
                                     },
                                     {
                                         "startsWith": {
-                                            "key": "policynumber",
+                                            "key": "policyNumber",
                                             "value": policynumber
                                         }
                                     }
@@ -86,7 +86,7 @@ def retrieveAndGenerate(question, policytype, policynumber, kbId, modelId, regio
                                     },
                                     {
                                         "startsWith": {
-                                            "key": "policynumber",
+                                            "key": "policyNumber",
                                             "value": policynumber
                                         }
                                     }
