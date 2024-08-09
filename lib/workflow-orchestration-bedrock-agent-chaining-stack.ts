@@ -25,138 +25,163 @@ export class WorkflowOrchestrationBedrockAgentChainingStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
-    const damageAnalysisAndNotificationAgentInstruction =
-    `You are a helpful virtual assistant whose goal is to do a preliminary analysis on the images uploaded by users for their insurance claims and send notifications to claims adjusters about your initial analysis.
+      const damageAnalysisAndNotificationAgentInstruction = 
+        `You are a helpful virtual assistant whose goal is to do a preliminary analysis on the images uploaded by users for their insurance claims and send notifications to claims adjusters about your initial analysis.
 Here are the steps you should follow in exact order for preliminary analysis of the images:
 Step 1: Analyze the uploaded images for damages. 
 Step 2: Send a notification of the analysis of these damages to the claims adjusters.`
-    
-    //Create the S3 bucket to store the html file , uploading the image data for damages as well as the bucket that will hold policy documents
+
+    // Create S3 buckets
     const damageImagesBucket = new s3.Bucket(this, 'DamageImagesBucket', {
-      removalPolicy: RemovalPolicy.DESTROY, // This is for demo purposes, use a proper removal policy in production
-      autoDeleteObjects: true // This is for demo purposes, use a proper removal policy in production
-    });
-    
-    const uiHtmlbucket = new s3.Bucket(this, 'HtmlBucket',{
-      removalPolicy: RemovalPolicy.DESTROY, // This is for demo purposes, use a proper removal policy in production
-      autoDeleteObjects: true // This is for demo purposes, use a proper removal policy in production
-    });
-    
-    const policyDocsBucket = new s3.Bucket(this, 'PolicyDocsBucket',{
-      removalPolicy: RemovalPolicy.DESTROY, // This is for demo purposes, use a proper removal policy in production
-      autoDeleteObjects: true // This is for demo purposes, use a proper removal policy in production
-    });
-    
-    
-    //Create Damage Analysis Lambda function role 
-    const damageAnalsyislambdaFunctionRole = new Role(this, 'DamageAnalysisLambdaFunctionRole', {
-        roleName: 'DamageAnalysisLambdaFunctionRole',
-        assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
-        managedPolicies: [ManagedPolicy.fromAwsManagedPolicyName('AdministratorAccess')],
+      removalPolicy: RemovalPolicy.DESTROY,
+      autoDeleteObjects: true
     });
 
+    const uiHtmlBucket = new s3.Bucket(this, 'HtmlBucket', {
+      removalPolicy: RemovalPolicy.DESTROY,
+      autoDeleteObjects: true
+    });
 
-    const damageAnalysisActionGroupExecutor = new Function (this, 'DamageAnalysisAgentActionGroup', {
-        runtime: Runtime.PYTHON_3_10,
-        handler: 'index.lambda_handler',
-        code: Code.fromAsset(path.join(__dirname, '..', 'actions', 'damage_analysis')),
-        timeout: Duration.seconds(600),
-        role: damageAnalsyislambdaFunctionRole,
-        environment: {
-          'CLAIMIMAGE_SUBMITTED_BUCKET': damageImagesBucket.bucketName, // Pass the S3 bucket name for images as an environment variable
-        }
-    }); 
-    
-    // Output the Lambda function name
-    new cdk.CfnOutput(this, 'DamageAnalysisLambdaFunction', {
-        value: damageAnalysisActionGroupExecutor.functionName,
+    const policyDocsBucket = new s3.Bucket(this, 'PolicyDocsBucket', {
+      removalPolicy: RemovalPolicy.DESTROY,
+      autoDeleteObjects: true
     });
     
+    new cdk.CfnOutput(this, 'PolicyDocumentsBucketName', { value: policyDocsBucket.bucketName });
 
-    //Queue for sending the Damage Analysis Notifications out to the Claims Adjusters
-    const queue = new sqs.Queue(this, 'ClaimsAdjustersQueue', {
-      visibilityTimeout: Duration.seconds(300)
+    // Lambda Roles
+    const damageAnalysisLambdaFunctionRole = new Role(this, 'DamageAnalysisLambdaFunctionRole', {
+      assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
+      managedPolicies: [ManagedPolicy.fromAwsManagedPolicyName('AdministratorAccess')],
+    });
+
+    const damageNotificationLambdaFunctionRole = new Role(this, 'NotificationLambdaFunctionRole', {
+      assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
+      managedPolicies: [ManagedPolicy.fromAwsManagedPolicyName('AdministratorAccess')],
+    });
+
+    const policyRetrievalLambdaFunctionRole = new Role(this, 'PolicyRetrievalLambdaFunctionRole', {
+      assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
+      managedPolicies: [ManagedPolicy.fromAwsManagedPolicyName('AdministratorAccess')],
     });
     
-
-    //Create Damage Analysis Lambda function role 
-    const notificationlambdaFunctionRole = new Role(this, 'NotificationLambdaFunctionRole', {
-        roleName: 'NotificationLambdaFunctionRole',
-        assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
-        managedPolicies: [ManagedPolicy.fromAwsManagedPolicyName('AdministratorAccess')],
+    const createClaimsLambdaFunctionRole = new Role(this, 'CreateClaimsLambdaFunctionRole', {
+      assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
+      managedPolicies: [ManagedPolicy.fromAwsManagedPolicyName('AdministratorAccess')],
     });
     
-    // Create an AWS Lambda function for Sending Notification of Preliminary Analysis to Claims Adjusters
-    const damageNotificationActionGroupExecutor = new Function(this, 'NotificationActionGroupFunction', {
-      runtime: Runtime.PYTHON_3_10,
-      code: Code.fromAsset(path.join(__dirname, '..', 'actions', 'damage_notification')),
+    const invokeDamageAgentlambdaFunctionRole = new Role(this, 'InvokeDamageAgentlambdaFunctionRole', {
+      assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
+      managedPolicies: [ManagedPolicy.fromAwsManagedPolicyName('AdministratorAccess')],
+    });
+    
+    
+    const invokePolicyAgentlambdaFunctionRole = new Role(this, 'InvokePolicyAgentlambdaFunctionRole', {
+      assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
+      managedPolicies: [ManagedPolicy.fromAwsManagedPolicyName('AdministratorAccess')],
+    });
+
+    // Damage Analysis Lambda function
+    const damageAnalysisLambdaFunction = new lambda.Function(this, 'damageAnalysisLambdaFunction', {
+      runtime: lambda.Runtime.PYTHON_3_10,
       handler: 'index.lambda_handler',
+      code: lambda.Code.fromAsset(path.join(__dirname, '..', 'actions', 'damage_analysis')),
       timeout: Duration.seconds(600),
+      role: damageAnalysisLambdaFunctionRole,
       environment: {
-        'NOTIFICATION_QUEUE_URL': queue.queueUrl // Pass the SQS queue URL as an environment variable
+        'CLAIMIMAGE_SUBMITTED_BUCKET': damageImagesBucket.bucketName,
       }
     });
     
-    new cdk.CfnOutput(this, 'DamageNotificationLambdaFunction', {
-        value: damageNotificationActionGroupExecutor.functionName,
+    // Output the Lambda function name and ARN
+    new cdk.CfnOutput(this, 'DamageAnalysisLambdaFunction', {
+      value: damageAnalysisLambdaFunction.functionName,
+      description: 'The name of the Damage Analysis Lambda function',
+    });
+
+    // SQS Queue for Damage Notifications
+    const queue = new sqs.Queue(this, 'ClaimsAdjustersQueue', {
+      visibilityTimeout: Duration.seconds(300)
+    });
+
+    // Damage Notification Lambda function
+    const damageNotificationLambdaFunction = new lambda.Function(this, 'notificationLambdaFunction', {
+      runtime: lambda.Runtime.PYTHON_3_10,
+      handler: 'index.lambda_handler',
+      code: lambda.Code.fromAsset(path.join(__dirname, '..', 'actions', 'damage_notification')),
+      timeout: Duration.seconds(600),
+      role: damageNotificationLambdaFunctionRole,
+      environment: {
+        'NOTIFICATION_QUEUE_URL': queue.queueUrl,
+      }
     });
     
-    // Grant permission to the Lambda function to receive messages from the SQS queue
-    queue.grantSendMessages(damageNotificationActionGroupExecutor);
+    // Output the Lambda function name and ARN
+    new cdk.CfnOutput(this, 'DamageNotificationLambdaFunction', {
+      value: damageNotificationLambdaFunction.functionName,
+      description: 'The name of the Damage Notification Lambda function',
+    });
     
-    const DamageAnalysisNotificationAgent = new bedrock.Agent(this, "DamageAnalyisBedrockAgentStack", {
+
+    queue.grantSendMessages(damageNotificationLambdaFunction);
+
+    // Create the Damage Analysis and Notification Agent
+    const DamageAnalysisNotificationAgent = new bedrock.Agent(this, "DamageAnalysisNotificationBedrockAgent", {
       name: 'DamageAnalysisNotificationBedrockAgent',
       instruction: damageAnalysisAndNotificationAgentInstruction,
       foundationModel: bedrock.BedrockFoundationModel.ANTHROPIC_CLAUDE_V2_1,
-      description: 'DamageAnalysis_Agent',
-      idleSessionTTL: cdk.Duration.minutes(60),
-    })
-    
-    // add the action group for analyzing damages
-    new bedrock.AgentActionGroup(this, 'DamageAnalysisActionGroup', {
+      description: 'DamageAnalysisNotificationBedrockAgent',
+      idleSessionTTL: Duration.minutes(60),
+      shouldPrepareAgent: true
+    });
+
+    // Damage Analysis Action Group
+    const damageAnalysisActionGroup = new bedrock.AgentActionGroup(this, 'DamageAnalysisActionGroup', {
       actionGroupName: 'DamageAnalysisActionGroup',
-      description: 'The action group for Damage analysis',
-      agent: DamageAnalysisNotificationAgent,
-      apiSchema: bedrock.ApiSchema.fromAsset(
-        path.join(__dirname, '..' , './actions/damage_analysis/damageanalysis_spec.json')
-      ),
+      description: 'Action group for damage analysis',
+      actionGroupExecutor: {
+        lambda: damageAnalysisLambdaFunction,
+      },
       actionGroupState: 'ENABLED',
-      actionGroupExecutor: damageAnalysisActionGroupExecutor,
-      shouldPrepareAgent: true,
+      apiSchema: bedrock.ApiSchema.fromAsset(
+        path.join(__dirname, '..', './actions/damage_analysis/damageanalysis_spec.json')
+      ),
     });
-    
-    
-    // add the action group for sending notifications about the summary of damages to the Claim Adjuster's SQS queue 
-    new bedrock.AgentActionGroup(this, 'NotificationActionGroup', {
+
+    DamageAnalysisNotificationAgent.addActionGroup(damageAnalysisActionGroup);
+
+    // Notification Action Group
+    const notificationActionGroup = new bedrock.AgentActionGroup(this, 'NotificationActionGroup', {
       actionGroupName: 'NotificationActionGroup',
-      description: 'The action group for sending notifications',
-      agent: DamageAnalysisNotificationAgent,
-      apiSchema: bedrock.ApiSchema.fromAsset(
-        path.join(__dirname, '..' , './actions/damage_notification/notification_spec.json')
-      ),
+      description: 'Action group for sending notifications',
+      actionGroupExecutor: {
+        lambda: damageNotificationLambdaFunction,
+      },
       actionGroupState: 'ENABLED',
-      actionGroupExecutor: damageNotificationActionGroupExecutor,
-      shouldPrepareAgent: true,
+      apiSchema: bedrock.ApiSchema.fromAsset(
+        path.join(__dirname, '..', './actions/damage_notification/notification_spec.json')
+      ),
     });
-    
-    // Store the Damage Analysis Notification Agent Id as a parameter in Parameter Store
-    new ssm.StringParameter(this, 'DamageAnalysisNotfnAgentId', {
-      parameterName: '/insureassist/damageAnalysisNotfnAgentId',
+
+    DamageAnalysisNotificationAgent.addActionGroup(notificationActionGroup);
+
+    // Store Agent ID in SSM
+    new ssm.StringParameter(this, 'DamageAnalysisNotificationAgentId', {
+      parameterName: '/insureassist/damageAnalysisNotificationAgentId',
       stringValue: DamageAnalysisNotificationAgent.agentId,
     });
     
-    //Output DamageAnalysisNotificationAgentID
-    new cdk.CfnOutput(this, 'DamageAnalysisAndNotificationAgentId', {value: DamageAnalysisNotificationAgent.agentId});
+    //Output 
+    new cdk.CfnOutput(this, 'DamageAnalysisAndNotificationAgentId', { value: DamageAnalysisNotificationAgent.agentId });
 
-
-    // create the bedrock knowledge base for policy documents
+    // Bedrock Knowledge Base
     const kb = new bedrock.KnowledgeBase(this, 'BedrockKnowledgeBase', {
       embeddingsModel: bedrock.BedrockFoundationModel.COHERE_EMBED_ENGLISH_V3
     });
-    
-    // Output the Knowledge Base ID
-    new cdk.CfnOutput(this, 'KnowledgeBaseId', {
-      value: kb.knowledgeBaseId,
+
+    new ssm.StringParameter(this, 'KnowledgeBaseId', {
+      parameterName: '/insureassist/knowledgeBaseId',
+      stringValue: kb.knowledgeBaseId,
     });
     
     // set the data source of the s3 bucket for the knowledge base
@@ -166,85 +191,100 @@ Step 2: Send a notification of the analysis of these damages to the claims adjus
       dataSourceName: 'policy-data',
       chunkingStrategy: bedrock.ChunkingStrategy.DEFAULT
     });
-    
-   //Create Policy  Retrieval Lambda function role 
-    const policylambdaFunctionRole = new Role(this, 'PolicyRetrievalLambdaFunctionRole', {
-      roleName: 'PolicyRetrievalLambdaFunctionRole',
-      assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
-      managedPolicies: [ManagedPolicy.fromAwsManagedPolicyName('AdministratorAccess')],
-    });
 
-    const policyRetrieveActionGroupExecutor = new Function (this, 'PolicyRetrievalAgentActionGroup', {
-      runtime: Runtime.PYTHON_3_10,
+    //Output
+    new cdk.CfnOutput(this, 'KnowledgeBaseIdOutput', { value: kb.knowledgeBaseId });
+    
+    
+    // Policy Retrieval Lambda function
+    const policyRetrieveLambdaFunction = new lambda.Function(this, 'PolicyRetrievalLambdaFunction', {
+      runtime: lambda.Runtime.PYTHON_3_10,
       handler: 'index.lambda_handler',
-      code: Code.fromAsset(path.join(__dirname, '..', 'actions', 'policylookup'),{
-      bundling: {
-            image: lambda.Runtime.PYTHON_3_10.bundlingImage,
-            command: [
-                'bash', '-c',
-                `pip install -r requirements.txt -t /asset-output && cp -r . /asset-output`
-            ],
+      code: lambda.Code.fromAsset(path.join(__dirname, '..', 'actions', 'policylookup'), {
+        bundling: {
+          image: lambda.Runtime.PYTHON_3_10.bundlingImage,
+          command: [
+            'bash', '-c',
+            `pip install -r requirements.txt -t /asset-output && cp -r . /asset-output`
+          ],
         },
-      
       }),
       timeout: Duration.seconds(600),
-      role: policylambdaFunctionRole,
+      role: policyRetrievalLambdaFunctionRole,
       environment: {
-          'KB_ID': kb.knowledgeBaseId, 
-          'REGION': this.region
+        'KB_ID': kb.knowledgeBaseId,
+        'REGION': this.region
       }
-    }); 
+    });
     
     // Output the Lambda function name
     new cdk.CfnOutput(this, 'PolicyRetrievalFromKBLambdaFunction', {
-        value: policyRetrieveActionGroupExecutor.functionName,
+        value: policyRetrieveLambdaFunction.functionName,
+        description: 'The name of the Policy Retrieve Lambda Function',
+    });
+
+    // Policy Retrieval Action Group
+    const policyRetrieveActionGroup = new bedrock.AgentActionGroup(this, 'PolicyRetrievalActionGroup', {
+      actionGroupName: 'PolicyRetrievalActionGroup',
+      description: 'Action group for policy retrieval',
+      actionGroupExecutor: {
+        lambda: policyRetrieveLambdaFunction,
+      },
+      actionGroupState: 'ENABLED',
+      apiSchema: bedrock.ApiSchema.fromAsset(
+        path.join(__dirname, '..', './actions/policylookup/policylookup_spec.json')
+      ),
     });
     
-    const PolicyAgent = new bedrock.Agent(this, "PolicyBedrockAgentStack", {
+    // Define the Policy  Agent
+    const PolicyAgent = new bedrock.Agent(this, "PolicyBedrockAgent", {
         name: "PolicyBedrockAgent",
         instruction: "You are a knowledgeable and helpful virtual assistant for insurance policy questions. ",
         foundationModel: bedrock.BedrockFoundationModel.ANTHROPIC_CLAUDE_V2_1,
-        description: 'PolicyAnalysis_Agent',
+        description: 'PolicyBedrockAgent',
         idleSessionTTL: cdk.Duration.minutes(60),
+        shouldPrepareAgent: true
     });
     
-    // add the action group for analyzing damages
-    new bedrock.AgentActionGroup(this, 'PolicyBedrockAgentActionGroup', {
-      actionGroupName: 'PolicyBedrockAgentActionGroup',
-      description: 'Insurance policy retrieval action',
-      agent: PolicyAgent,
-      apiSchema: bedrock.ApiSchema.fromAsset(
-        path.join(__dirname, '..' , './actions/policylookup/policylookup_spec.json')
-      ),
+    PolicyAgent.addActionGroup(policyRetrieveActionGroup);
+    
+    //Output 
+    new cdk.CfnOutput(this, 'PolicyBedrockAgentId', { value: PolicyAgent.agentId });
+    
+    
+    // Create "Create Claims and Fraud Detection APIs" Lambda function
+    const createClaimsLambdaFunction = new lambda.Function(this, 'createClaimsLambdaFunction', {
+      runtime: lambda.Runtime.PYTHON_3_10,
+      handler: 'index.lambda_handler',
+      code: lambda.Code.fromAsset(path.join(__dirname, '..', 'actions', 'createclaims_detectfraud')),
+      timeout: Duration.seconds(600),
+      role: createClaimsLambdaFunctionRole,
+    });
+    
+    // Output the Lambda function name
+    new cdk.CfnOutput(this, 'CreateClaimsLambdaFunction', {
+        value: createClaimsLambdaFunction.functionName,
+        description: 'The name of the Create Claims and Fraud detection Lambda Function',
+    });
+    
+    // Create Claims and Fraud Detection Action Group
+    const claimCreationFraudDetectionActionGroup = new bedrock.AgentActionGroup(this, 'ClaimCreateDetectFraudActionGroup', {
+      actionGroupName: 'ClaimCreateDetectFraudActionGroup',
+      description: 'Action group for creating claims and  fraud detection',
+      actionGroupExecutor: {
+        lambda: createClaimsLambdaFunction,
+      },
       actionGroupState: 'ENABLED',
-      actionGroupExecutor: policyRetrieveActionGroupExecutor,
-      shouldPrepareAgent: true,
+      apiSchema: bedrock.ApiSchema.fromAsset(
+        path.join(__dirname, '..' , './actions/createclaims_detectfraud/claimsfrauddetection_spec.json')
+      ),
     });
     
     
-    // Store the Policy Analysis Agent Id as a parameter in Parameter Store
-    new ssm.StringParameter(this, 'PolicyAgentId', {
-      parameterName: '/insureassist/policyBedrockAgentId',
-      stringValue: PolicyAgent.agentId,
-    });
-    
-    //Output DamageAnalysisNotificationAgentID
-    new cdk.CfnOutput(this, 'PolicyBedrockAgentId', {value: PolicyAgent.agentId});
-
-
-    //start preparing the Action Groups and Actions that will be invoked by the Insure Assist Orchestrator Agent
-    
-    //Create "Invoke Damage Agent" Lambda function role 
-    const invokeDamageAgentlambdaFunctionRole = new Role(this, 'InvokeDamageAgentLambdaFunctionRole', {
-        roleName: 'InvokeDamageAgentLambdaFunctionRole',
-        assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
-        managedPolicies: [ManagedPolicy.fromAwsManagedPolicyName('AdministratorAccess')],
-    });
-    
-    // Create "Invoke Damage Agent" Lambda function
-    const invokeDamageAgentActionGroupExecutor = new Function(this, 'InvokeDamageAgentActionGroupFunction', {
-      runtime: Runtime.PYTHON_3_10,
-      code: Code.fromAsset(path.join(__dirname, '..', 'actions', 'invoke_damageagent')),
+     // "Invoke Damage Agent" Lambda function from Insurance Orchestrator
+    const invokeDamageAgentLambdaFunction = new lambda.Function(this, 'invokeDamageAgentLambdaFunction', {
+      runtime: lambda.Runtime.PYTHON_3_10,
+      code: lambda.Code.fromAsset(path.join(__dirname, '..', 'actions', 'invoke_damageagent')),
       handler: 'index.lambda_handler',
       timeout: Duration.seconds(600),
       role: invokeDamageAgentlambdaFunctionRole,
@@ -253,104 +293,80 @@ Step 2: Send a notification of the analysis of these damages to the claims adjus
       }
     });
     
-    //Create "Invoke Policy Agent" Lambda function role 
-    const invokePolicyAgentlambdaFunctionRole = new Role(this, 'InvokePolicyAgentLambdaFunctionRole', {
-        roleName: 'InvokePolicyAgentLambdaFunctionRole',
-        assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
-        managedPolicies: [ManagedPolicy.fromAwsManagedPolicyName('AdministratorAccess')],
+    // Output the Lambda function name
+    new cdk.CfnOutput(this, 'InvokeDamageAgentLambdaFunction', {
+        value: invokeDamageAgentLambdaFunction.functionName,
+        description: 'The name of the Invoke Damage agent Lambda Function',
     });
     
-    // Create "Invoke Policy Agent" Lambda function
-    const invokePolicyAgentActionGroupExecutor = new Function(this, 'InvokePolicyAgentActionGroupFunction', {
-      runtime: Runtime.PYTHON_3_10,
-      code: Code.fromAsset(path.join(__dirname, '..', 'actions', 'invoke_policyagent')),
+    // add the action group for invoking the DamageNotification Agent from the InsuranceOrchestrator Agent
+    const invokeDamageAgentActionGroup = new bedrock.AgentActionGroup(this, 'InvokeDamageAgentActionGroup', {
+      actionGroupName: 'InvokeDamageAgentActionGroup',
+      description: 'Action to Invoke Damage Analysis Agent',
+      actionGroupExecutor: {
+        lambda: invokeDamageAgentLambdaFunction,
+      },
+      actionGroupState: 'ENABLED',
+      apiSchema: bedrock.ApiSchema.fromAsset(
+        path.join(__dirname, '..' , './actions/invoke_damageagent/invokedamageagent_spec.json')
+      ),
+    });
+    
+    
+    
+    // "Invoke Policy Agent" Lambda function from Insurance Orchestrator
+    const invokePolicyAgentLambdaFunction = new lambda.Function(this, 'invokePolicyAgentLambdaFunction', {
+      runtime: lambda.Runtime.PYTHON_3_10,
+      code: lambda.Code.fromAsset(path.join(__dirname, '..', 'actions', 'invoke_policyagent')),
       handler: 'index.lambda_handler',
       timeout: Duration.seconds(600),
       role: invokePolicyAgentlambdaFunctionRole,
       environment: {
-        'Policy_Agent_ID': PolicyAgent.agentId // Pass the SQS queue URL as an environment variable
+        'Policy_Agent_ID': PolicyAgent.agentId
       }
     });
     
-    new cdk.CfnOutput(this, 'InvokePolicyAgentLambdafunction', {
-      value: invokePolicyAgentActionGroupExecutor.functionName,
-    });
-    
-    //Create "Create Claims and Draud Detection APIs" Lambda function role 
-    const createclaimslambdaFunctionRole = new Role(this, 'CreateClaimsLambdaFunctionRole', {
-        roleName: 'CreateClaimsLambdaFunctionRole',
-        assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
-        managedPolicies: [ManagedPolicy.fromAwsManagedPolicyName('AdministratorAccess')],
-    });
-    
-    // Create "Create Claims and Fraud Detection APIs" Lambda function
-    const createClaimsActionGroupExecutor = new Function(this, 'CreateClaimsActionGroupFunction', {
-      runtime: Runtime.PYTHON_3_10,
-      code: Code.fromAsset(path.join(__dirname, '..', 'actions', 'createclaims_detectfraud')),
-      handler: 'index.lambda_handler',
-      timeout: Duration.seconds(600),
-      role: createclaimslambdaFunctionRole,
-    });
-    
-    //Create the Insurance Orchestrator Bedrock agent
-    const InsuranceOrchestratorAgent = new bedrock.Agent(this, "InsuranceOrchestratorBedrockAgentStack", {
-        name: "InsuranceOrchestratorBedrockAgent",
-        instruction: "You are a helpful virtual assistant whose goal is to provide courteous and human-like responses while helping customers file insurance claims, detect fraud before filing claims, assess damages, and to answer questions related to the customer’s insurance policy. ",
-        foundationModel: bedrock.BedrockFoundationModel.ANTHROPIC_CLAUDE_V2_1,
-        description: 'InsuranceOrchestrator_Agent',
-        idleSessionTTL: cdk.Duration.minutes(60)
-    })
-    
-    // add the action group for invoking the DamageNotification Agent from the InsuranceOrchestrator Agent
-    new bedrock.AgentActionGroup(this, 'InvokeDamageAgentActionGroup', {
-      actionGroupName: 'InvokeDamageAgentActionGroup',
-      description: 'Action to Invoke Damage Analysis Agent',
-      agent: InsuranceOrchestratorAgent,
-      apiSchema: bedrock.ApiSchema.fromAsset(
-        path.join(__dirname, '..' , './actions/invoke_damageagent/invokedamageagent_spec.json')
-      ),
-      actionGroupState: 'ENABLED',
-      actionGroupExecutor: invokeDamageAgentActionGroupExecutor,
-      shouldPrepareAgent: true,
+    // Output the Lambda function name
+    new cdk.CfnOutput(this, 'InvokePolicyAgentLambdaFunction', {
+        value: invokePolicyAgentLambdaFunction.functionName,
+        description: 'The name of the Invoke Policy agent Lambda Function',
     });
     
     // add the action group for invoking the Policy Agent from the InsuranceOrchestrator Agent
-    new bedrock.AgentActionGroup(this, 'InvokePolicyAgentActionGroup', {
+    const invokePolicyAgentActionGroup = new bedrock.AgentActionGroup(this, 'InvokePolicyAgentActionGroup', {
       actionGroupName: 'InvokePolicyAgentActionGroup',
-      description: 'Action to Invoke Policy Analysis Agent',
-      agent: InsuranceOrchestratorAgent,
+      description: 'Action to Invoke Policy Agent',
+      actionGroupExecutor: {
+        lambda: invokePolicyAgentLambdaFunction,
+      },
+      actionGroupState: 'ENABLED',
       apiSchema: bedrock.ApiSchema.fromAsset(
         path.join(__dirname, '..' , './actions/invoke_policyagent/invokepolicyagent_spec.json')
       ),
-      actionGroupState: 'ENABLED',
-      actionGroupExecutor: invokePolicyAgentActionGroupExecutor,
-      shouldPrepareAgent: true,
     });
     
-        
-    new bedrock.AgentActionGroup(this, 'ClaimCreationFraudDetectionActionGroup', {
-      actionGroupName: 'ClaimCreationFraudDetectionActionGroup',
-      description: 'Action to Create Claims , Detect Frauds',
-      agent: InsuranceOrchestratorAgent,
-      apiSchema: bedrock.ApiSchema.fromAsset(
-        path.join(__dirname, '..' , './actions/createclaims_detectfraud/claimsfrauddetection_spec.json')
-      ),
-      actionGroupState: 'ENABLED',
-      actionGroupExecutor: createClaimsActionGroupExecutor,
-      shouldPrepareAgent: true,
+    // Define the Insurance Orchestrator Agent
+    const InsuranceOrchestratorAgent = new bedrock.Agent(this, "InsuranceOrchestratorBedrockAgent", {
+      name: "InsuranceOrchestratorBedrockAgent",
+      instruction: "You are a helpful virtual assistant whose goal is to provide courteous and human-like responses while helping customers file insurance claims, detect fraud before filing claims, assess damages, and to answer questions related to the customer’s insurance policy. ",
+      foundationModel: bedrock.BedrockFoundationModel.ANTHROPIC_CLAUDE_V2_1,
+      description: 'Insurance Orchestrator Bedrock Agent',
+      idleSessionTTL: Duration.minutes(60),
+      shouldPrepareAgent: true
     });
-    
-    
-    // Store the Insurance Agent Orchestrator as a parameter in Parameter Store
-    new ssm.StringParameter(this, 'OrchestratorAgentId', {
+
+    InsuranceOrchestratorAgent.addActionGroup(claimCreationFraudDetectionActionGroup);
+    InsuranceOrchestratorAgent.addActionGroup(invokeDamageAgentActionGroup);
+    InsuranceOrchestratorAgent.addActionGroup(invokePolicyAgentActionGroup);
+
+    new ssm.StringParameter(this, 'OrchestratorAgent', {
       parameterName: '/insureassist/insuranceOrchestratorAgentId',
       stringValue: InsuranceOrchestratorAgent.agentId,
     });
-    
-    //Output DamageAnalysisNotificationAgentID
+
+    // Output values
     new cdk.CfnOutput(this, 'InsuranceOrchestratorAgentId', {value: InsuranceOrchestratorAgent.agentId});
-    
-    
+   
     //User interface constructs and code
     
     // Retrieve default VPC associated with Cloud9
@@ -407,7 +423,7 @@ Step 2: Send a notification of the analysis of these damages to the claims adjus
     // Upload the updated index.html to the S3 bucket
     new s3deploy.BucketDeployment(this, 'DeployIndexHtml', {
       sources: [s3deploy.Source.asset(path.join(__dirname, '..', 'lambdas', 'ui_chatbot'))],
-      destinationBucket: uiHtmlbucket,
+      destinationBucket: uiHtmlBucket,
       destinationKeyPrefix: '', // Set destinationKeyPrefix to empty string for root of bucket
     });
 
@@ -428,7 +444,7 @@ Step 2: Send a notification of the analysis of these damages to the claims adjus
       memorySize: 512, // Memory allocation for the function in MB
       timeout: cdk.Duration.seconds(900), // Maximum execution time for the function in seconds
       environment: {
-        HTML_BUCKET_NAME: uiHtmlbucket.bucketName,
+        HTML_BUCKET_NAME: uiHtmlBucket.bucketName,
         IMAGE_BUCKET_SUBMITTED_BY_UI: damageImagesBucket.bucketName,
         INSURE_ASSIST_API_ALB_DNS_NAME: albApiCallingInsureAssistAgent.loadBalancerDnsName
       },
@@ -469,12 +485,6 @@ Step 2: Send a notification of the analysis of these damages to the claims adjus
     new cdk.CfnOutput(this, 'ImageBucketName', {
       value: damageImagesBucket.bucketName,
     });
-    
-    //
-    new cdk.CfnOutput(this, 'PolicyDocumentsBucketName', {
-      value: policyDocsBucket.bucketName,
-    });
-    
 
   }
 }
