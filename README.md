@@ -3,7 +3,12 @@
 This github repo goes with this [article](https://community.aws/content/2aVhjeNXvQKS1RBv8sskcmYbz7r) :
 
 ### Deploy the solution
-This project is built using the [AWS Cloud Development Kit (CDK)](https://aws.amazon.com/cdk/) on AWS Cloud9 IDE. See [CDK setup on Cloud9](https://docs.aws.amazon.com/cloud9/latest/user-guide/sample-cdk.html#sample-cdk-install-nodejs) for additional details and prerequisites.
+This project is built using the [AWS Cloud Development Kit (CDK)](https://aws.amazon.com/cdk/) on AWS Cloud9 IDE. See [CDK setup on Cloud9](https://docs.aws.amazon.com/cloud9/latest/user-guide/sample-cdk.html#sample-cdk-install-nodejs) for additional details and prerequisites on Cloud 9.
+- For refernce here are the versions of node and aws cdk that have been used.
+- Node.js: v20.16.0
+- [AWS CDK](https://github.com/aws/aws-cdk/releases/tag/v2.143.0): 2.143.0
+- Command to install a specific version of aws-cdk is  
+    ```npm install -g aws-cdk@X.YY.Z```
 
 1. Clone this repository.
     ```shell
