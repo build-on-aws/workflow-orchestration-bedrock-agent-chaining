@@ -243,7 +243,8 @@ Step 2: Send a notification of the analysis of these damages to the claims adjus
         foundationModel: bedrock.BedrockFoundationModel.ANTHROPIC_CLAUDE_V2_1,
         description: 'PolicyBedrockAgent',
         idleSessionTTL: cdk.Duration.minutes(60),
-        shouldPrepareAgent: true
+        shouldPrepareAgent: true,
+        enableUserInput: true,
     });
     
     PolicyAgent.addActionGroup(policyRetrieveActionGroup);
@@ -352,7 +353,8 @@ Step 2: Send a notification of the analysis of these damages to the claims adjus
       foundationModel: bedrock.BedrockFoundationModel.ANTHROPIC_CLAUDE_V2_1,
       description: 'Insurance Orchestrator Bedrock Agent',
       idleSessionTTL: Duration.minutes(60),
-      shouldPrepareAgent: true
+      shouldPrepareAgent: true,
+      enableUserInput: true,
     });
 
     InsuranceOrchestratorAgent.addActionGroup(claimCreationFraudDetectionActionGroup);
