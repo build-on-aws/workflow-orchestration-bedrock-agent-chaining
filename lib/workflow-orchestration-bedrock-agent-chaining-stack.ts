@@ -18,7 +18,7 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as targets from "aws-cdk-lib/aws-elasticloadbalancingv2-targets";
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
-import { readFileSync } from "fs";
+
 
 
 export class WorkflowOrchestrationBedrockAgentChainingStack extends Stack {
@@ -129,7 +129,7 @@ Step 2: Send a notification of the analysis of these damages to the claims adjus
     const DamageAnalysisNotificationAgent = new bedrock.Agent(this, "DamageAnalysisNotificationBedrockAgent", {
       name: 'DamageAnalysisNotificationBedrockAgent',
       instruction: damageAnalysisAndNotificationAgentInstruction,
-      foundationModel: bedrock.BedrockFoundationModel.ANTHROPIC_CLAUDE_HAIKU_V1_0,
+      foundationModel: bedrock.BedrockFoundationModel.ANTHROPIC_CLAUDE_V2_1,
       description: 'DamageAnalysisNotificationBedrockAgent',
       idleSessionTTL: Duration.minutes(60),
       shouldPrepareAgent: true
@@ -237,33 +237,14 @@ Step 2: Send a notification of the analysis of these damages to the claims adjus
     });
     
     // Define the Policy  Agent
-    const policyorchestration = readFileSync("prompts/policyorchestration.txt", "utf-8");
     const PolicyAgent = new bedrock.Agent(this, "PolicyBedrockAgent", {
         name: "PolicyBedrockAgent",
         instruction: "You are a knowledgeable and helpful virtual assistant for insurance policy questions. ",
-        foundationModel: bedrock.BedrockFoundationModel.ANTHROPIC_CLAUDE_HAIKU_V1_0,
+        foundationModel: bedrock.BedrockFoundationModel.ANTHROPIC_CLAUDE_V2_1,
         description: 'PolicyBedrockAgent',
         idleSessionTTL: cdk.Duration.minutes(60),
         shouldPrepareAgent: true,
         enableUserInput: true,
-        promptOverrideConfiguration: {
-          promptConfigurations:[
-            {
-               promptType: bedrock.PromptType.ORCHESTRATION,
-               basePromptTemplate: policyorchestration,
-               promptState: bedrock.PromptState.ENABLED,
-               promptCreationMode: bedrock.PromptCreationMode.OVERRIDDEN,
-               inferenceConfiguration: {
-                  temperature: 0.0,
-                  topP: 0.44,
-                  topK: 250,
-                  maximumLength: 4096,
-                  stopSequences: ["</invoke>", "</answer>", "</error>"],
-                },
-            },
-          ]
-        }
-        
     });
     
     PolicyAgent.addActionGroup(policyRetrieveActionGroup);
@@ -366,33 +347,14 @@ Step 2: Send a notification of the analysis of these damages to the claims adjus
     });
     
     // Define the Insurance Orchestrator Agent
-    const orchestration = readFileSync("prompts/insuranceorchestration.txt", "utf-8");
     const InsuranceOrchestratorAgent = new bedrock.Agent(this, "InsuranceOrchestratorBedrockAgent", {
       name: "InsuranceOrchestratorBedrockAgent",
       instruction: "You are a helpful virtual assistant whose goal is to provide courteous and human-like responses while helping customers file insurance claims, detect fraud before filing claims, assess damages, and to answer questions related to the customer’s insurance policy. ",
-      foundationModel: bedrock.BedrockFoundationModel.ANTHROPIC_CLAUDE_HAIKU_V1_0,
+      foundationModel: bedrock.BedrockFoundationModel.ANTHROPIC_CLAUDE_V2_1,
       description: 'Insurance Orchestrator Bedrock Agent',
       idleSessionTTL: Duration.minutes(60),
       shouldPrepareAgent: true,
       enableUserInput: true,
-      promptOverrideConfiguration: {
-        promptConfigurations:[
-          {
-             promptType: bedrock.PromptType.ORCHESTRATION,
-             basePromptTemplate: orchestration,
-             promptState: bedrock.PromptState.ENABLED,
-             promptCreationMode: bedrock.PromptCreationMode.OVERRIDDEN,
-             inferenceConfiguration: {
-                temperature: 0.0,
-                topP: 0.44,
-                topK: 250,
-                maximumLength: 4096,
-                stopSequences: ["</invoke>", "</answer>", "</error>"],
-              },
-          },
-        ]
-      }
-        
     });
 
     InsuranceOrchestratorAgent.addActionGroup(claimCreationFraudDetectionActionGroup);
