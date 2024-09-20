@@ -10,16 +10,10 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 # Bedrock client used to interact with APIs around models
-bedrock = boto3.client(
-    service_name='bedrock', 
-    region_name='us-east-1'
-)
+bedrock = boto3.client(service_name='bedrock')
      
 # Bedrock Runtime client used to invoke and question the models
-bedrock_runtime = boto3.client(
-    service_name='bedrock-runtime', 
-    region_name='us-east-1'
-)
+bedrock_runtime = boto3.client(service_name='bedrock-runtime')
 
 
 # Initialize S3 client
