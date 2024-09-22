@@ -126,8 +126,8 @@ def lambda_handler(event, context):
                 data[policy_details['name']] = json.loads(policy_details['value'])
         policytype = data['policytype']           
         policynumber = data['policynumber']
-        # question = data['question']
-        question = event['inputText']
+        question = data['question']
+        # question = event['inputText']
         
         
         try:
